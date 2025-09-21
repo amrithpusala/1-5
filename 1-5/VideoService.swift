@@ -3,6 +3,7 @@ import AVFoundation
 import FirebaseStorage
 import FirebaseFirestore
 
+// Handles video export to MP4, upload to Storage, and Firestore writes.
 final class VideoService {
     static let shared = VideoService()
     private init() {}
@@ -10,8 +11,7 @@ final class VideoService {
     private let storage = Storage.storage()
     private let db = Firestore.firestore()
     
-    /// Uploads a video file by first exporting to MP4, then uploading to Storage,
-    /// and finally saving a Firestore document with the https downloadURL.
+    /// Exports to MP4, uploads to Storage, then writes a VideoPost to Firestore.
     func uploadVideo(
         fileURL: URL,
         caption: String,
@@ -62,10 +62,10 @@ final class VideoService {
                         let download = downloadURL.absoluteString
                         print("VideoService: downloadURL=\(download)")
                         
-                        // 4) Build post and write Firestore
+                        // 4) Build post and write Firestore (feed + user copy)
                         let post = VideoPost(
                             id: vidId,
-                            videoURL: download,   // https URL
+                            videoURL: download,
                             thumbnailURL: nil,
                             caption: caption,
                             hashtags: hashtags,
@@ -115,7 +115,7 @@ final class VideoService {
         }
     }
     
-    /// Exports any input video to an .mp4 in a temporary location.
+    /// Converts an input video to a temporary .mp4 file.
     private func exportToMP4(inputURL: URL, completion: @escaping (Result<URL, Error>) -> Void) {
         let asset = AVURLAsset(url: inputURL)
         guard let exporter = AVAssetExportSession(asset: asset, presetName: AVAssetExportPresetHighestQuality) else {
@@ -125,7 +125,7 @@ final class VideoService {
         let tempDir = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
         let outURL = tempDir.appendingPathComponent(UUID().uuidString).appendingPathExtension("mp4")
         
-        // Remove existing file if any
+        // Remove existing file if any.
         try? FileManager.default.removeItem(at: outURL)
         
         exporter.outputURL = outURL
@@ -150,7 +150,7 @@ final class VideoService {
         }
     }
     
-    /// Paged fetch (newest first). Pass `lastDoc` from previous page for pagination.
+    /// Fetches a page of feed posts (newest first). Use lastDoc for pagination.
     func fetchFeedPage(limit: Int = 5,
                        after lastDoc: DocumentSnapshot? = nil,
                        completion: @escaping (Result<([VideoPost], DocumentSnapshot?), Error>) -> Void) {
@@ -167,7 +167,7 @@ final class VideoService {
         }
     }
     
-    // Simple counters (like/dislike/vote)
+    /// Increments a numeric field on a post (like/dislike/votes).
     func increment(field: String, for postId: String) {
         db.collection("videos").document(postId).updateData([field: FieldValue.increment(Int64(1))])
     }

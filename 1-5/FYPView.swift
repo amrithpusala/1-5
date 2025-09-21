@@ -1,12 +1,13 @@
 import SwiftUI
 import AVKit
 
+// Simple feed ("For You Page") showing sample videos with basic interactions.
 struct FYPView: View {
     @State private var posts: [VideoPost] = []
     @State private var loading = false
-    @State private var reachedEnd = true // no pagination when using dummy data
+    @State private var reachedEnd = true // no pagination with dummy data
     
-    // Animation state for a lightweight logo pulse when the view first appears
+    // Small logo animation on appear.
     @State private var showLogo = false
     
     var body: some View {
@@ -14,8 +15,8 @@ struct FYPView: View {
             Color.black.ignoresSafeArea()
             
             if posts.isEmpty && !loading {
+                // Empty state with load button.
                 VStack(spacing: 14) {
-                    // App logo
                     Image("1-5logo")
                         .resizable()
                         .scaledToFit()
@@ -32,6 +33,7 @@ struct FYPView: View {
                     .foregroundColor(.blue)
                 }
             } else {
+                // Vertical scrolling feed of autoplaying videos.
                 ScrollView {
                     ZStack(alignment: .top) {
                         LazyVStack(spacing: 0) {
@@ -58,7 +60,7 @@ struct FYPView: View {
                             }
                         }
                         
-                        // Subtle gradient shimmer at top to soften the first cell edge
+                        // Top gradient to soften first cell edge.
                         LinearGradient(colors: [Color.black.opacity(0.6), .clear],
                                        startPoint: .top, endPoint: .bottom)
                         .frame(height: 40)
@@ -77,11 +79,12 @@ struct FYPView: View {
         }
     }
     
+    // Loads a few sample clips into the feed.
     private func loadDummyFeed() {
         guard !loading else { return }
         loading = true
         
-        // A few public sample video URLs (Google sample bucket)
+        // Public sample videos.
         let sampleClips = [
             "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
             "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
@@ -89,7 +92,7 @@ struct FYPView: View {
             "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4"
         ]
         
-        // Shuffle so each run feels a bit different
+        // Shuffle for variety.
         let shuffled = Array(sampleClips.shuffled().prefix(3))
         
         let now = Date()
@@ -153,6 +156,7 @@ struct FYPView: View {
 
 // MARK: - Cell
 
+// Single feed cell with autoplaying player and quick actions.
 private struct FYPCell: View {
     let post: VideoPost
     var interactionsEnabled: Bool = true
@@ -167,12 +171,12 @@ private struct FYPCell: View {
                     return p
                 }())
                 .ignoresSafeArea()
-                .transition(.opacity) // softer when paging
+                .transition(.opacity)
             } else {
                 Color.black
             }
             
-            // Overlay UI
+            // Overlay: caption and actions.
             HStack(alignment: .bottom) {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("@\(post.username)")
@@ -242,6 +246,7 @@ private struct FYPCell: View {
 
 // MARK: - Soft appear modifier
 
+// Gentle fade/scale-in when cells appear.
 private struct SoftAppear: ViewModifier {
     @State private var visible = false
     func body(content: Content) -> some View {
@@ -258,6 +263,7 @@ private struct SoftAppear: ViewModifier {
 
 // MARK: - iOS 17+ paging modifier gate
 
+// Enables paging behavior on iOS 17+; no-op otherwise.
 private struct PagingIfAvailable: ViewModifier {
     func body(content: Content) -> some View {
         if #available(iOS 17.0, *) {

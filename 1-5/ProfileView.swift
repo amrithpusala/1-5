@@ -2,15 +2,17 @@ import SwiftUI
 import FirebaseFirestore
 import AVKit
 
+// User profile: header, bio/stats, grid of posted videos, and stat overlays.
 struct ProfileView: View {
     @EnvironmentObject var session: SessionState
     @State private var myPosts: [VideoPost] = []
     @State private var selectedPost: VideoPost? = nil
 
-    // New: stat overlay
+    // Stat overlay state
     @State private var showingStatOverlay: Bool = false
     @State private var activeStat: ProfileStat? = nil
 
+    // 3-column grid for thumbnails.
     private let columns = [
         GridItem(.flexible()),
         GridItem(.flexible()),
@@ -24,28 +26,24 @@ struct ProfileView: View {
 
                 ScrollView {
                     VStack(spacing: 20) {
-                        // --- Profile Header ---
+                        // Header: avatar, username, bio, counters.
                         VStack(spacing: 8) {
-                            // PFP
                             Image(systemName: "person.crop.circle.fill")
                                 .resizable()
                                 .frame(width: 90, height: 90)
                                 .foregroundColor(.white.opacity(0.85))
                                 .padding(.top, 30)
 
-                            // Username
                             Text(session.username.isEmpty ? "Test User" : session.username)
                                 .font(.title3.bold())
                                 .foregroundColor(.white)
 
-                            // Bio placeholder
                             Text(session.bio.isEmpty ? "No bio yet." : session.bio)
                                 .font(.subheadline)
                                 .foregroundColor(.white.opacity(0.7))
                                 .padding(.horizontal)
                                 .multilineTextAlignment(.center)
 
-                            // Followers / Following
                             HStack(spacing: 40) {
                                 VStack {
                                     Text("0").bold().foregroundColor(.white)
@@ -63,7 +61,7 @@ struct ProfileView: View {
                             .padding(.top, 8)
                         }
 
-                        // --- New: Bio & Stats section ---
+                        // Bio + tappable stat chips.
                         MyBioAndStatsSection(
                             bio: session.bio.isEmpty ? "Tell people about your dares, style, and vibe." : session.bio,
                             stats: computedStats,
@@ -76,7 +74,7 @@ struct ProfileView: View {
 
                         Divider().background(Color.white.opacity(0.2))
 
-                        // --- Videos Grid ---
+                        // Video grid with inline thumbnails.
                         if myPosts.isEmpty {
                             Text("No videos yet")
                                 .foregroundColor(.white.opacity(0.6))
@@ -106,7 +104,7 @@ struct ProfileView: View {
                     .padding(.horizontal, 16)
                 }
 
-                // Overlay for Stat details (tap outside to dismiss)
+                // Tap-through overlay showing stat details.
                 if showingStatOverlay, let stat = activeStat {
                     StatDetailOverlay(stat: stat) {
                         withAnimation(.easeOut(duration: 0.2)) {
@@ -133,6 +131,7 @@ struct ProfileView: View {
                     myPosts = []
                 }
             }
+            // Fullscreen player for selected post.
             .sheet(item: $selectedPost) { post in
                 if let url = URL(string: post.videoURL) {
                     VideoPlayer(player: AVPlayer(url: url))
@@ -142,7 +141,7 @@ struct ProfileView: View {
         }
     }
 
-    // Aggregate stats from current data
+    // Derived stats from posts and dares.
     private var computedStats: [ProfileStat] {
         let likes = myPosts.reduce(0) { $0 + $1.likes }
         let dislikes = myPosts.reduce(0) { $0 + $1.dislikes }
@@ -157,6 +156,7 @@ struct ProfileView: View {
         ]
     }
 
+    // Loads this user's posts from Firestore (newest first).
     private func loadMyPosts() {
         let db = Firestore.firestore()
         db.collection("users").document(session.userId).collection("videos")
@@ -175,7 +175,7 @@ struct ProfileView: View {
     }
 }
 
-// Simple thumbnail generator from video URL
+// Simple thumbnail generator from a video URL.
 struct VideoThumbnailView: View {
     let url: URL
     @State private var image: UIImage? = nil
@@ -193,6 +193,7 @@ struct VideoThumbnailView: View {
         }
     }
 
+    // Extracts the first frame as a thumbnail.
     private func generateThumbnail() {
         DispatchQueue.global().async {
             let asset = AVAsset(url: url)
@@ -208,6 +209,7 @@ struct VideoThumbnailView: View {
 
 // MARK: - Bio & Stats Section
 
+// Shows bio text and horizontal stat chips.
 private struct MyBioAndStatsSection: View {
     let bio: String
     let stats: [ProfileStat]
@@ -247,6 +249,7 @@ private struct MyBioAndStatsSection: View {
     }
 }
 
+// Single stat chip with icon and value.
 private struct StatChip: View {
     let stat: ProfileStat
 
@@ -272,13 +275,13 @@ private struct StatChip: View {
 
 // MARK: - Overlay
 
+// Dimmed overlay with details about a selected stat.
 private struct StatDetailOverlay: View {
     let stat: ProfileStat
     let onDismiss: () -> Void
 
     var body: some View {
         ZStack {
-            // Dim background; tap to dismiss
             Color.black.opacity(0.45)
                 .ignoresSafeArea()
                 .onTapGesture { onDismiss() }
@@ -306,7 +309,6 @@ private struct StatDetailOverlay: View {
                     .font(.subheadline)
                     .multilineTextAlignment(.leading)
 
-                // A little breakdown or hint for future expansion
                 HStack {
                     Text("Current value:")
                         .foregroundColor(.white.opacity(0.7))
@@ -316,7 +318,6 @@ private struct StatDetailOverlay: View {
                         .bold()
                 }
                 .padding(.top, 6)
-
             }
             .padding(16)
             .background(.ultraThinMaterial)
@@ -331,6 +332,7 @@ private struct StatDetailOverlay: View {
 
 // MARK: - Models for stats
 
+// Lightweight stat model for chips and overlay.
 private struct ProfileStat: Identifiable, Equatable {
     enum Kind {
         case likes, dislikes, completed, posts

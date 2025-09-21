@@ -1,10 +1,11 @@
 import SwiftUI
 
+// Main "My 1-5" screen: roll targets, view assigned dares, record flow, and coach.
 struct LandingPage: View {
     @EnvironmentObject var session: SessionState
     @State private var showRoll = false
     
-    // NEW
+    // Dare picking and recording flow
     @State private var showDarePicker = false
     @State private var selectedTierForRecord: String? = nil
     @State private var showRecorder = false
@@ -15,6 +16,7 @@ struct LandingPage: View {
                 Color.black.ignoresSafeArea()
 
                 VStack(spacing: 22) {
+                    // Title
                     Text("My 1-5")
                         .font(.system(size: 34, weight: .bold))
                         .foregroundStyle(
@@ -22,11 +24,12 @@ struct LandingPage: View {
                         )
                         .padding(.top, 8)
 
+                    // Roll targets and actions
                     rollCard
 
+                    // Record button appears when dares exist
                     if !session.assignedDares.isEmpty {
                         Button {
-                            // First pick the dare -> then open recorder
                             showDarePicker = true
                         } label: {
                             Label("Record Dare", systemImage: "record.circle.fill")
@@ -42,23 +45,25 @@ struct LandingPage: View {
                         .padding(.horizontal, 24)
                     }
 
+                    // Current dares list
                     myDaresList
 
-                    // NEW: Dare Coach bot in the bottom space
+                    // Lightweight on-device helper
                     DareCoachView()
                         .environmentObject(session)
                         .padding(.horizontal, 20)
                         .padding(.bottom, 8)
                 }
             }
+            // Roll sheet
             .sheet(isPresented: $showRoll) {
                 RollView().environmentObject(session).preferredColorScheme(.dark)
             }
-            // Dare picker sheet
+            // Dare picker sheet -> chains into recorder
             .sheet(isPresented: $showDarePicker) {
                 DarePickerView { pickedTier in
                     self.selectedTierForRecord = pickedTier
-                    self.showRecorder = true       // chain into recorder
+                    self.showRecorder = true
                 }
                 .environmentObject(session)
                 .preferredColorScheme(.dark)
@@ -72,6 +77,7 @@ struct LandingPage: View {
         }
     }
 
+    // Roll targets UI with reset.
     private var rollCard: some View {
         let hasRolled = session.rollResult != nil
         
@@ -112,6 +118,7 @@ struct LandingPage: View {
         .padding(.horizontal, 22)
     }
 
+    // Single target badge with match indicator.
     private func targetBadge(title: String, target: Int, match: Bool?, isPlaceholder: Bool) -> some View {
         VStack(spacing: 6) {
             Text(title)
@@ -137,6 +144,7 @@ struct LandingPage: View {
         .frame(width: 96)
     }
 
+    // List of assigned dares with completion toggle.
     private var myDaresList: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
@@ -182,7 +190,7 @@ struct LandingPage: View {
     }
 }
 
-// MARK: - Dare Coach (lightweight on-device helper)
+// MARK: - Dare Coach (simple rule-based helper)
 struct DareCoachView: View {
     @EnvironmentObject var session: SessionState
     @State private var expanded = true
@@ -191,7 +199,7 @@ struct DareCoachView: View {
 
     var body: some View {
         VStack(spacing: 10) {
-            // Header
+            // Header with expand/collapse
             HStack {
                 Label("Dare Coach", systemImage: "person.fill.questionmark")
                     .foregroundColor(.white)
@@ -208,7 +216,7 @@ struct DareCoachView: View {
             .padding(.horizontal, 8)
 
             if expanded {
-                // Messages
+                // Messages list (seeds tips when empty)
                 ScrollView {
                     VStack(alignment: .leading, spacing: 10) {
                         ForEach(messages) { msg in
@@ -232,7 +240,6 @@ struct DareCoachView: View {
                         }
 
                         if messages.isEmpty {
-                            // Seed tips based on current dares
                             ForEach(seedTips(), id: \.self) { tip in
                                 HStack(alignment: .top) {
                                     Image(systemName: "bubble.left.and.bubble.right.fill")
@@ -252,7 +259,7 @@ struct DareCoachView: View {
                 }
                 .frame(maxHeight: 180)
 
-                // Input row
+                // Input and send
                 HStack(spacing: 8) {
                     TextField("Ask how to complete a dare…", text: $input)
                         .textFieldStyle(.roundedBorder)
@@ -273,20 +280,21 @@ struct DareCoachView: View {
         .background(Color.white.opacity(0.06))
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .onAppear {
-            // Optionally seed a greeting message once
+            // One-time greeting
             if messages.isEmpty {
                 messages.append(CoachMessage(role: .bot, text: "Need ideas or tips? Ask me how to do your dare safely and creatively."))
             }
         }
     }
 
+    // Append user message and generate a simple response.
     private func sendMessage() {
         let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
         messages.append(CoachMessage(role: .user, text: trimmed))
         input = ""
 
-        // Simple on-device rule-based response
+        // Rule-based hints using keywords and current dares.
         let lower = trimmed.lowercased()
         var response: String
 
@@ -295,16 +303,15 @@ struct DareCoachView: View {
         } else if lower.contains("public") || lower.contains("embarrassing") || lower.contains("outside") {
             response = "Public dares: choose a safe, open area, bring a friend to record, and be respectful. Avoid blocking paths and keep it short. Confidence tip: plan your line, take a deep breath, and go!"
         } else if lower.contains("record") || lower.contains("video") || lower.contains("camera") {
-            response = "Recording tips: use good lighting, stabilize your phone (lean it or use a tripod), and frame vertically. Do a quick test clip to check audio and angle before the real take."
+            response = "Recording tips: use good lighting, stabilize your phone, and frame vertically. Do a test clip to check audio and angle first."
         } else if lower.contains("nervous") || lower.contains("scared") || lower.contains("anxious") {
-            response = "Feeling nervous is normal! Try a smaller warm-up dare first, bring a hype friend, and set a 10-second countdown to commit. Focus on the fun and the story you’ll tell."
+            response = "Feeling nervous is normal! Try a smaller warm-up dare first, bring a hype friend, and set a 10-second countdown to commit."
         } else if lower.contains("water") || lower.contains("chug") {
-            response = "Hydration dare: use cool water, don’t overdo it—small sips if you need to pause. Keep it safe and stop if you feel discomfort. Angle the camera slightly above eye level for a flattering shot."
+            response = "Hydration dare: use cool water, don’t overdo it—small sips if needed. Stop if you feel discomfort."
         } else {
-            // Use current assigned dares to tailor a generic response
             let tiers = session.assignedDares.map { $0.category }.joined(separator: ", ")
             let hint = tiers.isEmpty ? "" : " I see dares in tiers: \(tiers)."
-            response = "Good question!\(hint) Break the dare into steps, plan your setup (lighting, angle, safety), and add a fun twist (music or a prop). Ask me specifics like “public”, “push-ups”, or “recording”."
+            response = "Good question!\(hint) Break the dare into steps, plan setup (lighting, angle, safety), and add a fun twist."
         }
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
@@ -312,6 +319,7 @@ struct DareCoachView: View {
         }
     }
 
+    // Default tips shown when no chat yet.
     private func seedTips() -> [String] {
         var tips: [String] = [
             "Tip: Pick a safe spot and plan your camera angle before you start.",
@@ -324,6 +332,7 @@ struct DareCoachView: View {
     }
 }
 
+// Simple message model for coach chat.
 private struct CoachMessage: Identifiable {
     enum Role { case bot, user }
     let id = UUID()

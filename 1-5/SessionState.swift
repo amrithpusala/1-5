@@ -8,14 +8,16 @@
 import SwiftUI
 import FirebaseAuth
 
+// Central app/session model: auth state, user profile, roll/dares.
 class SessionState: ObservableObject {
+    // Auth and profile
     @Published var isLoggedIn: Bool = false
-    @Published var userId: String = ""        // used for Firestore paths
-    @Published var username: String = ""      // displayed in Profile
-    @Published var bio: String = ""           // displayed in Profile
-    @Published var userVideos: [VideoPost] = [] // videos for Profile
+    @Published var userId: String = ""        // Firestore path key
+    @Published var username: String = ""      // Profile display
+    @Published var bio: String = ""           // Profile bio
+    @Published var userVideos: [VideoPost] = [] // Profile posts
     
-    // Dares system
+    // Dares and roll state
     @Published var assignedDares: [Dare] = []
     @Published var rollResult: RollResult? = nil
     @Published var target1to5: Int = Int.random(in: 1...5)
@@ -23,7 +25,7 @@ class SessionState: ObservableObject {
     @Published var target1to100: Int = Int.random(in: 1...100)
 
     init() {
-        // If already signed in, use that user. Otherwise sign in anonymously for testing.
+        // Reuse current user or sign in anonymously for testing.
         if let currentUser = Auth.auth().currentUser {
             adopt(user: currentUser)
         } else {
@@ -34,13 +36,14 @@ class SessionState: ObservableObject {
                         self.adopt(user: user)
                     }
                 } else if let error = error {
-                    // Keep app usable; you can show a toast if you like
+                    // Keep app usable; optional UI error handling.
                     print("Anonymous sign-in failed: \(error.localizedDescription)")
                 }
             }
         }
     }
     
+    // Initialize session fields from Firebase user.
     private func adopt(user: User) {
         self.isLoggedIn = true
         self.userId = user.uid
@@ -50,6 +53,7 @@ class SessionState: ObservableObject {
         self.bio = ""
     }
     
+    // Clear current roll and generate new targets.
     func resetRoll() {
         rollResult = nil
         target1to5 = Int.random(in: 1...5)
@@ -58,7 +62,7 @@ class SessionState: ObservableObject {
         assignedDares = []
     }
 
-    // Always assign a dare per tier so the picker always has content
+    // Always pick one dare per tier from library.
     func assignDares(from result: RollResult) {
         var picks: [Dare] = []
         if let d = DaresLibrary.oneToFive.randomElement() { picks.append(d) }
@@ -67,6 +71,7 @@ class SessionState: ObservableObject {
         assignedDares = picks
     }
 
+    // Random dares across tiers (no roll dependency).
     func assignRandomDares() {
         assignedDares = [
             DaresLibrary.oneToFive.randomElement(),
@@ -75,7 +80,7 @@ class SessionState: ObservableObject {
         ].compactMap { $0 }
     }
     
-    // Optional testing helper (kept for manual override)
+    // Test helper to force a local session.
     func becomeTestUserIfNeeded() {
         if userId.isEmpty {
             userId = "test-user"
