@@ -95,12 +95,13 @@ struct LoginView: View {
 
                 // Primary button
                 Button {
-                    // Hook up real auth later; for now just pass through
+                    // Test flow: allow “login” locally and set a test user so uploads work.
                     if username.isEmpty || password.isEmpty {
                         errorMessage = "Please enter username and password."
                     } else {
                         errorMessage = nil
-                        session.isLoggedIn = true
+                        session.username = username
+                        session.becomeTestUserIfNeeded() // ensures userId and isLoggedIn
                     }
                 } label: {
                     Text(isLoginMode ? "Log In" : "Sign Up")
@@ -128,7 +129,7 @@ struct LoginView: View {
 
                 // Skip (testing)
                 Button {
-                    session.isLoggedIn = true
+                    session.becomeTestUserIfNeeded() // ensures userId and isLoggedIn
                 } label: {
                     Text("Skip Login (testing)")
                         .foregroundColor(.blue)

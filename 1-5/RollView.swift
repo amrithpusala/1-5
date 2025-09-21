@@ -11,13 +11,13 @@ struct RollView: View {
 
     var body: some View {
         ZStack {
-            // ✅ Full background gradient restored
+            // Background gradient
             LinearGradient(gradient: Gradient(colors: [.black, .purple.opacity(0.9)]),
                            startPoint: .top, endPoint: .bottom)
                 .ignoresSafeArea()
 
             VStack(spacing: 20) {
-                // ✅ Back button restored
+                // Back button
                 HStack {
                     Button(action: {
                         presentationMode.wrappedValue.dismiss()
@@ -47,6 +47,32 @@ struct RollView: View {
                 }
                 .frame(height: 150)
 
+                // Prominent "Feeling bold?" dangerous button
+                Button(action: assignBoldAndExit) {
+                    HStack(spacing: 10) {
+                        Image(systemName: "flame.fill")
+                            .font(.headline)
+                        Text("Feeling Bold? Assign Anyways")
+                            .font(.headline)
+                            .fontWeight(.semibold)
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(
+                        LinearGradient(colors: [.red, .pink],
+                                       startPoint: .leading,
+                                       endPoint: .trailing)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(Color.white.opacity(0.2), lineWidth: 1)
+                    )
+                    .cornerRadius(12)
+                    .shadow(color: .red.opacity(0.4), radius: 10, x: 0, y: 6)
+                }
+                .padding(.horizontal)
+
                 // Done button
                 Button(action: rollNumbers) {
                     Text("Done")
@@ -75,23 +101,11 @@ struct RollView: View {
                 }
 
                 Spacer()
-
-                // Feeling bold link
-                Button(action: {
-                    session.assignRandomDares()
-                    presentationMode.wrappedValue.dismiss()
-                }) {
-                    Text("Feeling bold? Assign anyways.")
-                        .font(.footnote)
-                        .underline()
-                        .foregroundColor(.blue)
-                }
-                .padding(.bottom, 10)
             }
         }
     }
 
-    // MARK: - Helpers
+    // MARK: - Actions
     private func rollNumbers() {
         let result = RollResult(
             rolled1to5: selected1to5,
@@ -106,6 +120,19 @@ struct RollView: View {
             showCPU = true
         }
         session.assignDares(from: result)
+
+        // Dismiss back to LandingPage so user can proceed
+        presentationMode.wrappedValue.dismiss()
+    }
+
+    private func assignBoldAndExit() {
+        session.assignRandomDares()
+        // Also optionally set a placeholder rollResult so UI can proceed if needed (not required)
+        // session.rollResult = RollResult(rolled1to5: 0, rolled1to50: 0, rolled1to100: 0,
+        //                                 target1to5: session.target1to5,
+        //                                 target1to50: session.target1to50,
+        //                                 target1to100: session.target1to100)
+        presentationMode.wrappedValue.dismiss()
     }
 
     // MARK: - CPU Box with Gradient Outline + Pop Check

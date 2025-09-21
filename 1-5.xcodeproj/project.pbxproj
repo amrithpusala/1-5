@@ -7,6 +7,21 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		9F167D7B2E7F8E2200F6A125 /* VideoModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F167D7A2E7F8E1500F6A125 /* VideoModels.swift */; };
+		9F167D7C2E7F8E2200F6A125 /* VideoModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F167D7A2E7F8E1500F6A125 /* VideoModels.swift */; };
+		9F167D7D2E7F8E2200F6A125 /* VideoModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F167D7A2E7F8E1500F6A125 /* VideoModels.swift */; };
+		9F167D7F2E7F8E4600F6A125 /* VideoService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F167D7E2E7F8E4200F6A125 /* VideoService.swift */; };
+		9F167D802E7F8E4600F6A125 /* VideoService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F167D7E2E7F8E4200F6A125 /* VideoService.swift */; };
+		9F167D812E7F8E4600F6A125 /* VideoService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F167D7E2E7F8E4200F6A125 /* VideoService.swift */; };
+		9F167D832E7F8E5900F6A125 /* DarePickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F167D822E7F8E5500F6A125 /* DarePickerView.swift */; };
+		9F167D842E7F8E5900F6A125 /* DarePickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F167D822E7F8E5500F6A125 /* DarePickerView.swift */; };
+		9F167D852E7F8E5900F6A125 /* DarePickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F167D822E7F8E5500F6A125 /* DarePickerView.swift */; };
+		9F167D872E7F8E6900F6A125 /* VideoRecorderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F167D862E7F8E6900F6A125 /* VideoRecorderView.swift */; };
+		9F167D882E7F8E6900F6A125 /* VideoRecorderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F167D862E7F8E6900F6A125 /* VideoRecorderView.swift */; };
+		9F167D892E7F8E6900F6A125 /* VideoRecorderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F167D862E7F8E6900F6A125 /* VideoRecorderView.swift */; };
+		9F167D8B2E7F8F8F00F6A125 /* SessionState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F167D8A2E7F8F8F00F6A125 /* SessionState.swift */; };
+		9F167D8C2E7F8F8F00F6A125 /* SessionState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F167D8A2E7F8F8F00F6A125 /* SessionState.swift */; };
+		9F167D8D2E7F8F8F00F6A125 /* SessionState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F167D8A2E7F8F8F00F6A125 /* SessionState.swift */; };
 		9FB457D22E6E48A700A5E34B /* FirebaseAnalyticsWithoutAdIdSupport in Frameworks */ = {isa = PBXBuildFile; productRef = 9FB457D12E6E48A700A5E34B /* FirebaseAnalyticsWithoutAdIdSupport */; };
 		9FB457D42E6E48A700A5E34B /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 9FB457D32E6E48A700A5E34B /* FirebaseAuth */; };
 		9FB457D62E6E48A700A5E34B /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 9FB457D52E6E48A700A5E34B /* FirebaseFirestore */; };
@@ -64,6 +79,12 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		9F167D7A2E7F8E1500F6A125 /* VideoModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoModels.swift; sourceTree = "<group>"; };
+		9F167D7E2E7F8E4200F6A125 /* VideoService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoService.swift; sourceTree = "<group>"; };
+		9F167D822E7F8E5500F6A125 /* DarePickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DarePickerView.swift; sourceTree = "<group>"; };
+		9F167D862E7F8E6900F6A125 /* VideoRecorderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoRecorderView.swift; sourceTree = "<group>"; };
+		9F167D8A2E7F8F8F00F6A125 /* SessionState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionState.swift; sourceTree = "<group>"; };
+		9F2DB9302E7F957100A0E2F6 /* --5-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "--5-Info.plist"; sourceTree = SOURCE_ROOT; };
 		9FCBB4A92E7F16890081ED5B /* FYPView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FYPView.swift; sourceTree = "<group>"; };
 		9FCBB4AB2E7F169F0081ED5B /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
 		9FCBB4AD2E7F18290081ED5B /* LandingPage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LandingPage.swift; sourceTree = "<group>"; };
@@ -139,8 +160,14 @@
 		9FF1AAE52E6E35D90027D851 /* 1-5 */ = {
 			isa = PBXGroup;
 			children = (
+				9F2DB9302E7F957100A0E2F6 /* --5-Info.plist */,
 				9FCBB4A92E7F16890081ED5B /* FYPView.swift */,
+				9F167D8A2E7F8F8F00F6A125 /* SessionState.swift */,
 				9FCBB4C92E7F2A750081ED5B /* Models.swift */,
+				9F167D7A2E7F8E1500F6A125 /* VideoModels.swift */,
+				9F167D7E2E7F8E4200F6A125 /* VideoService.swift */,
+				9F167D822E7F8E5500F6A125 /* DarePickerView.swift */,
+				9F167D862E7F8E6900F6A125 /* VideoRecorderView.swift */,
 				9FCBB4AB2E7F169F0081ED5B /* ProfileView.swift */,
 				9FF1AAE62E6E35D90027D851 /* __5App.swift */,
 				9FCBB4B12E7F1ED10081ED5B /* Dares.swift */,
@@ -325,13 +352,18 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				9F167D802E7F8E4600F6A125 /* VideoService.swift in Sources */,
 				9FF1AAE92E6E35D90027D851 /* ContentView.swift in Sources */,
+				9F167D8C2E7F8F8F00F6A125 /* SessionState.swift in Sources */,
+				9F167D832E7F8E5900F6A125 /* DarePickerView.swift in Sources */,
 				9FCBB4BE2E7F25D80081ED5B /* InfinitePicker.swift in Sources */,
 				9FCBB4B62E7F219B0081ED5B /* RollView.swift in Sources */,
 				9FCBB4CA2E7F2A750081ED5B /* Models.swift in Sources */,
 				9FCBB4AE2E7F18290081ED5B /* LandingPage.swift in Sources */,
 				9FCBB4C62E7F27550081ED5B /* MainTabView.swift in Sources */,
 				9FCBB4AC2E7F169F0081ED5B /* ProfileView.swift in Sources */,
+				9F167D7B2E7F8E2200F6A125 /* VideoModels.swift in Sources */,
+				9F167D882E7F8E6900F6A125 /* VideoRecorderView.swift in Sources */,
 				9FCBB4B22E7F1ED10081ED5B /* Dares.swift in Sources */,
 				9FCBB4AA2E7F16890081ED5B /* FYPView.swift in Sources */,
 				9FCBB4C22E7F27410081ED5B /* LoginView.swift in Sources */,
@@ -350,7 +382,12 @@
 				9FCBB4B72E7F219B0081ED5B /* RollView.swift in Sources */,
 				9FCBB4AF2E7F18290081ED5B /* LandingPage.swift in Sources */,
 				9FCBB4CB2E7F2A750081ED5B /* Models.swift in Sources */,
+				9F167D7D2E7F8E2200F6A125 /* VideoModels.swift in Sources */,
 				9FF1AAF92E6E35DA0027D851 /* __5Tests.swift in Sources */,
+				9F167D8D2E7F8F8F00F6A125 /* SessionState.swift in Sources */,
+				9F167D842E7F8E5900F6A125 /* DarePickerView.swift in Sources */,
+				9F167D892E7F8E6900F6A125 /* VideoRecorderView.swift in Sources */,
+				9F167D812E7F8E4600F6A125 /* VideoService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -360,9 +397,14 @@
 			files = (
 				9FF1AB052E6E35DA0027D851 /* __5UITestsLaunchTests.swift in Sources */,
 				9FCBB4C82E7F27550081ED5B /* MainTabView.swift in Sources */,
+				9F167D8B2E7F8F8F00F6A125 /* SessionState.swift in Sources */,
 				9FCBB4B42E7F1ED10081ED5B /* Dares.swift in Sources */,
 				9FCBB4C02E7F25D80081ED5B /* InfinitePicker.swift in Sources */,
+				9F167D852E7F8E5900F6A125 /* DarePickerView.swift in Sources */,
 				9FCBB4B82E7F219B0081ED5B /* RollView.swift in Sources */,
+				9F167D872E7F8E6900F6A125 /* VideoRecorderView.swift in Sources */,
+				9F167D7C2E7F8E2200F6A125 /* VideoModels.swift in Sources */,
+				9F167D7F2E7F8E4600F6A125 /* VideoService.swift in Sources */,
 				9FF1AB032E6E35DA0027D851 /* __5UITests.swift in Sources */,
 				9FCBB4C42E7F27410081ED5B /* LoginView.swift in Sources */,
 				9FCBB4B02E7F18290081ED5B /* LandingPage.swift in Sources */,
@@ -544,6 +586,10 @@
 					"\"${PODS_XCFRAMEWORKS_BUILD_DIR}/GoogleAppMeasurement/IdentitySupport\"",
 				);
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "--5-Info.plist";
+				INFOPLIST_KEY_NSCameraUsageDescription = "";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -582,6 +628,10 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "--5-Info.plist";
+				INFOPLIST_KEY_NSCameraUsageDescription = "";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;

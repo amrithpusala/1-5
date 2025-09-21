@@ -1,167 +1,368 @@
 import SwiftUI
-import PhotosUI
+import FirebaseFirestore
+import AVKit
 
 struct ProfileView: View {
     @EnvironmentObject var session: SessionState
-    @State private var bio: String = "Tap to add a bio"
-    @State private var isEditingBio = false
+    @State private var myPosts: [VideoPost] = []
+    @State private var selectedPost: VideoPost? = nil
 
-    // Profile picture state
-    @State private var profileImage: UIImage? = nil
-    @State private var showImagePicker = false
+    // New: stat overlay
+    @State private var showingStatOverlay: Bool = false
+    @State private var activeStat: ProfileStat? = nil
 
-    var username: String {
-        session.isLoggedIn
-        ? "@" + (session.username.isEmpty ? "user" : session.username)
-        : "@TestUser"
-    }
+    private let columns = [
+        GridItem(.flexible()),
+        GridItem(.flexible()),
+        GridItem(.flexible())
+    ]
 
     var body: some View {
-        NavigationView {
-            VStack(spacing: 20) {
-                // MARK: Profile Image
-                Button(action: {
-                    showImagePicker = true
-                }) {
-                    if let profileImage = profileImage {
-                        Image(uiImage: profileImage)
-                            .resizable()
-                            .scaledToFill()
-                            .frame(width: 100, height: 100)
-                            .clipShape(Circle())
-                            .overlay(Circle().stroke(Color.purple, lineWidth: 3))
-                    } else {
-                        Image(systemName: "person.circle.fill")
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 100, height: 100)
-                            .foregroundColor(.gray)
-                            .overlay(Circle().stroke(Color.purple, lineWidth: 3))
-                    }
-                }
-                .sheet(isPresented: $showImagePicker) {
-                    ImagePicker(image: $profileImage)
-                }
+        NavigationStack {
+            ZStack {
+                Color.black.ignoresSafeArea()
 
-                // MARK: Username + Bio
-                VStack(spacing: 8) {
-                    Text(username)
-                        .font(.title2).bold()
-                        .foregroundColor(.white)
+                ScrollView {
+                    VStack(spacing: 20) {
+                        // --- Profile Header ---
+                        VStack(spacing: 8) {
+                            // PFP
+                            Image(systemName: "person.crop.circle.fill")
+                                .resizable()
+                                .frame(width: 90, height: 90)
+                                .foregroundColor(.white.opacity(0.85))
+                                .padding(.top, 30)
 
-                    if isEditingBio {
-                        TextField("Enter bio", text: $bio, onCommit: {
-                            isEditingBio = false
-                        })
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .padding(.horizontal)
-                    } else {
-                        Text(bio)
-                            .font(.subheadline)
-                            .foregroundColor(.gray)
-                            .onTapGesture {
-                                isEditingBio = true
+                            // Username
+                            Text(session.username.isEmpty ? "Test User" : session.username)
+                                .font(.title3.bold())
+                                .foregroundColor(.white)
+
+                            // Bio placeholder
+                            Text(session.bio.isEmpty ? "No bio yet." : session.bio)
+                                .font(.subheadline)
+                                .foregroundColor(.white.opacity(0.7))
+                                .padding(.horizontal)
+                                .multilineTextAlignment(.center)
+
+                            // Followers / Following
+                            HStack(spacing: 40) {
+                                VStack {
+                                    Text("0").bold().foregroundColor(.white)
+                                    Text("Following").font(.caption).foregroundColor(.white.opacity(0.7))
+                                }
+                                VStack {
+                                    Text("0").bold().foregroundColor(.white)
+                                    Text("Followers").font(.caption).foregroundColor(.white.opacity(0.7))
+                                }
+                                VStack {
+                                    Text("\(myPosts.count)").bold().foregroundColor(.white)
+                                    Text("Posts").font(.caption).foregroundColor(.white.opacity(0.7))
+                                }
                             }
-                    }
-                }
+                            .padding(.top, 8)
+                        }
 
-                // MARK: Followers / Following
-                HStack(spacing: 40) {
-                    VStack {
-                        Text("1753") // placeholder
-                            .font(.headline).bold()
-                            .foregroundColor(.white)
-                        Text("Following")
-                            .font(.caption)
-                            .foregroundColor(.gray)
-                    }
-                    VStack {
-                        Text("68") // placeholder
-                            .font(.headline).bold()
-                            .foregroundColor(.white)
-                        Text("Followers")
-                            .font(.caption)
-                            .foregroundColor(.gray)
-                    }
-                }
+                        // --- New: Bio & Stats section ---
+                        MyBioAndStatsSection(
+                            bio: session.bio.isEmpty ? "Tell people about your dares, style, and vibe." : session.bio,
+                            stats: computedStats,
+                            onTapStat: { stat in
+                                activeStat = stat
+                                showingStatOverlay = true
+                            }
+                        )
+                        .padding(.horizontal, 16)
 
-                // MARK: Edit Profile Button
-                Button(action: {
-                    isEditingBio.toggle()
-                }) {
-                    Text("Edit Profile")
-                        .font(.subheadline).bold()
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.gray.opacity(0.3))
-                        .cornerRadius(8)
-                        .foregroundColor(.white)
-                }
-                .padding(.horizontal)
+                        Divider().background(Color.white.opacity(0.2))
 
-                Divider().background(Color.gray)
+                        // --- Videos Grid ---
+                        if myPosts.isEmpty {
+                            Text("No videos yet")
+                                .foregroundColor(.white.opacity(0.6))
+                                .padding(.top, 40)
+                        } else {
+                            LazyVGrid(columns: columns, spacing: 2) {
+                                ForEach(myPosts) { post in
+                                    Button {
+                                        selectedPost = post
+                                    } label: {
+                                        ZStack {
+                                            Rectangle()
+                                                .fill(Color.gray.opacity(0.2))
+                                                .aspectRatio(9/16, contentMode: .fit)
 
-                // MARK: Video Grid
-                if session.userVideos.isEmpty {
-                    Spacer()
-                    Text("No videos yet")
-                        .foregroundColor(.gray)
-                        .font(.headline)
-                    Spacer()
-                } else {
-                    ScrollView {
-                        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 2), count: 3), spacing: 2) {
-                            ForEach(session.userVideos, id: \.id) { video in
-                                Rectangle()
-                                    .fill(Color.gray.opacity(0.5))
-                                    .aspectRatio(9/16, contentMode: .fit)
-                                    .overlay(
-                                        Text(video.title)
-                                            .font(.caption)
-                                            .foregroundColor(.white)
-                                            .padding(4),
-                                        alignment: .bottomLeading
-                                    )
+                                            if let url = URL(string: post.videoURL) {
+                                                VideoThumbnailView(url: url)
+                                                    .aspectRatio(9/16, contentMode: .fill)
+                                                    .clipped()
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
-                        .padding(.horizontal, 2)
                     }
+                    .padding(.horizontal, 16)
+                }
+
+                // Overlay for Stat details (tap outside to dismiss)
+                if showingStatOverlay, let stat = activeStat {
+                    StatDetailOverlay(stat: stat) {
+                        withAnimation(.easeOut(duration: 0.2)) {
+                            showingStatOverlay = false
+                            activeStat = nil
+                        }
+                    }
+                    .transition(.opacity.combined(with: .scale))
                 }
             }
-            .padding(.top, 30) // lower everything slightly
-            .background(Color.black.ignoresSafeArea())
-            .navigationBarHidden(true)
+            .navigationTitle("Profile")
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Logout") {
+                        session.isLoggedIn = false
+                    }
+                    .foregroundColor(.red)
+                }
+            }
+            .onAppear {
+                if !session.userId.isEmpty {
+                    loadMyPosts()
+                } else {
+                    myPosts = []
+                }
+            }
+            .sheet(item: $selectedPost) { post in
+                if let url = URL(string: post.videoURL) {
+                    VideoPlayer(player: AVPlayer(url: url))
+                        .ignoresSafeArea()
+                }
+            }
+        }
+    }
+
+    // Aggregate stats from current data
+    private var computedStats: [ProfileStat] {
+        let likes = myPosts.reduce(0) { $0 + $1.likes }
+        let dislikes = myPosts.reduce(0) { $0 + $1.dislikes }
+        let postsCount = myPosts.count
+        let completed = session.assignedDares.filter { $0.completed }.count
+
+        return [
+            ProfileStat(kind: .likes, value: likes, caption: "Total likes across your videos."),
+            ProfileStat(kind: .dislikes, value: dislikes, caption: "Total dislikes received."),
+            ProfileStat(kind: .completed, value: completed, caption: "Dares you marked as completed."),
+            ProfileStat(kind: .posts, value: postsCount, caption: "Videos you’ve posted.")
+        ]
+    }
+
+    private func loadMyPosts() {
+        let db = Firestore.firestore()
+        db.collection("users").document(session.userId).collection("videos")
+            .order(by: "createdAt", descending: true)
+            .getDocuments { snap, err in
+                if let err = err {
+                    print("Failed to load posts: \(err)")
+                    return
+                }
+                guard let snap = snap else { return }
+                let posts: [VideoPost] = snap.documents.compactMap { try? $0.decoded() as VideoPost }
+                DispatchQueue.main.async {
+                    self.myPosts = posts
+                }
+            }
+    }
+}
+
+// Simple thumbnail generator from video URL
+struct VideoThumbnailView: View {
+    let url: URL
+    @State private var image: UIImage? = nil
+
+    var body: some View {
+        Group {
+            if let img = image {
+                Image(uiImage: img)
+                    .resizable()
+                    .scaledToFill()
+            } else {
+                Color.gray.opacity(0.3)
+                    .onAppear { generateThumbnail() }
+            }
+        }
+    }
+
+    private func generateThumbnail() {
+        DispatchQueue.global().async {
+            let asset = AVAsset(url: url)
+            let generator = AVAssetImageGenerator(asset: asset)
+            generator.appliesPreferredTrackTransform = true
+            if let cgImage = try? generator.copyCGImage(at: .zero, actualTime: nil) {
+                let uiImage = UIImage(cgImage: cgImage)
+                DispatchQueue.main.async { self.image = uiImage }
+            }
         }
     }
 }
 
-// MARK: - UIKit Image Picker Wrapper
-struct ImagePicker: UIViewControllerRepresentable {
-    @Binding var image: UIImage?
+// MARK: - Bio & Stats Section
 
-    func makeCoordinator() -> Coordinator {
-        Coordinator(self)
-    }
+private struct MyBioAndStatsSection: View {
+    let bio: String
+    let stats: [ProfileStat]
+    let onTapStat: (ProfileStat) -> Void
 
-    func makeUIViewController(context: Context) -> some UIViewController {
-        let picker = UIImagePickerController()
-        picker.delegate = context.coordinator
-        picker.sourceType = .photoLibrary
-        return picker
-    }
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("My Bio")
+                .font(.headline)
+                .foregroundColor(.white)
 
-    func updateUIViewController(_ uiViewController: UIViewControllerType, context: Context) {}
+            Text(bio)
+                .foregroundColor(.white.opacity(0.85))
+                .font(.subheadline)
+                .padding(12)
+                .background(Color.white.opacity(0.06))
+                .clipShape(RoundedRectangle(cornerRadius: 14))
 
-    class Coordinator: NSObject, UINavigationControllerDelegate, UIImagePickerControllerDelegate {
-        let parent: ImagePicker
-        init(_ parent: ImagePicker) { self.parent = parent }
+            Text("Stats")
+                .font(.headline)
+                .foregroundColor(.white)
+                .padding(.top, 4)
 
-        func imagePickerController(_ picker: UIImagePickerController,
-                                   didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
-            if let uiImage = info[.originalImage] as? UIImage {
-                parent.image = uiImage
+            // Stat chips
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    ForEach(stats) { stat in
+                        StatChip(stat: stat)
+                            .onTapGesture {
+                                onTapStat(stat)
+                            }
+                    }
+                }
+                .padding(.vertical, 6)
             }
-            picker.dismiss(animated: true)
         }
     }
+}
+
+private struct StatChip: View {
+    let stat: ProfileStat
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: stat.kind.symbol)
+                .foregroundColor(stat.kind.color)
+                .font(.headline)
+            Text("\(stat.value)")
+                .foregroundColor(.white)
+                .font(.subheadline).bold()
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(Color.white.opacity(0.06))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Color.white.opacity(0.12), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+}
+
+// MARK: - Overlay
+
+private struct StatDetailOverlay: View {
+    let stat: ProfileStat
+    let onDismiss: () -> Void
+
+    var body: some View {
+        ZStack {
+            // Dim background; tap to dismiss
+            Color.black.opacity(0.45)
+                .ignoresSafeArea()
+                .onTapGesture { onDismiss() }
+
+            VStack(spacing: 12) {
+                HStack {
+                    Image(systemName: stat.kind.symbol)
+                        .foregroundColor(stat.kind.color)
+                        .font(.title3)
+                    Text(stat.kind.title)
+                        .font(.headline)
+                        .foregroundColor(.white)
+                    Spacer()
+                    Button {
+                        onDismiss()
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundColor(.white.opacity(0.8))
+                            .font(.title3)
+                    }
+                }
+
+                Text(stat.caption)
+                    .foregroundColor(.white.opacity(0.9))
+                    .font(.subheadline)
+                    .multilineTextAlignment(.leading)
+
+                // A little breakdown or hint for future expansion
+                HStack {
+                    Text("Current value:")
+                        .foregroundColor(.white.opacity(0.7))
+                    Spacer()
+                    Text("\(stat.value)")
+                        .foregroundColor(.white)
+                        .bold()
+                }
+                .padding(.top, 6)
+
+            }
+            .padding(16)
+            .background(.ultraThinMaterial)
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .shadow(radius: 20)
+            .padding(.horizontal, 24)
+        }
+        .transition(.opacity.combined(with: .scale))
+        .animation(.easeOut(duration: 0.2), value: stat.id)
+    }
+}
+
+// MARK: - Models for stats
+
+private struct ProfileStat: Identifiable, Equatable {
+    enum Kind {
+        case likes, dislikes, completed, posts
+
+        var symbol: String {
+            switch self {
+            case .likes: return "heart.fill"
+            case .dislikes: return "hand.thumbsdown.fill"
+            case .completed: return "checkmark.seal.fill"
+            case .posts: return "play.rectangle.fill"
+            }
+        }
+        var title: String {
+            switch self {
+            case .likes: return "Likes"
+            case .dislikes: return "Dislikes"
+            case .completed: return "Completed Dares"
+            case .posts: return "Posts"
+            }
+        }
+        var color: Color {
+            switch self {
+            case .likes: return .red
+            case .dislikes: return .gray
+            case .completed: return .green
+            case .posts: return .blue
+            }
+        }
+    }
+
+    let id = UUID()
+    let kind: Kind
+    let value: Int
+    let caption: String
 }

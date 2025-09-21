@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct ContentView: View {
-    @StateObject private var session = SessionState()
+    @EnvironmentObject var session: SessionState
 
     var body: some View {
         Group {

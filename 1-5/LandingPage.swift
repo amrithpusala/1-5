@@ -3,6 +3,11 @@ import SwiftUI
 struct LandingPage: View {
     @EnvironmentObject var session: SessionState
     @State private var showRoll = false
+    
+    // NEW
+    @State private var showDarePicker = false
+    @State private var selectedTierForRecord: String? = nil
+    @State private var showRecorder = false
 
     var body: some View {
         NavigationStack {
@@ -21,7 +26,8 @@ struct LandingPage: View {
 
                     if !session.assignedDares.isEmpty {
                         Button {
-                            print("Record Dare tapped")
+                            // First pick the dare -> then open recorder
+                            showDarePicker = true
                         } label: {
                             Label("Record Dare", systemImage: "record.circle.fill")
                                 .font(.headline)
@@ -37,21 +43,43 @@ struct LandingPage: View {
                     }
 
                     myDaresList
-                    Spacer(minLength: 24)
+
+                    // NEW: Dare Coach bot in the bottom space
+                    DareCoachView()
+                        .environmentObject(session)
+                        .padding(.horizontal, 20)
+                        .padding(.bottom, 8)
                 }
             }
             .sheet(isPresented: $showRoll) {
                 RollView().environmentObject(session).preferredColorScheme(.dark)
             }
+            // Dare picker sheet
+            .sheet(isPresented: $showDarePicker) {
+                DarePickerView { pickedTier in
+                    self.selectedTierForRecord = pickedTier
+                    self.showRecorder = true       // chain into recorder
+                }
+                .environmentObject(session)
+                .preferredColorScheme(.dark)
+            }
+            // Recorder sheet
+            .sheet(isPresented: $showRecorder) {
+                VideoRecorderView(selectedDareTier: selectedTierForRecord)
+                    .environmentObject(session)
+                    .preferredColorScheme(.dark)
+            }
         }
     }
 
     private var rollCard: some View {
-        VStack(spacing: 16) {
+        let hasRolled = session.rollResult != nil
+        
+        return VStack(spacing: 16) {
             HStack(spacing: 18) {
-                targetBadge(title: "1-5", target: session.target1to5, match: session.rollResult?.match1to5)
-                targetBadge(title: "1-50", target: session.target1to50, match: session.rollResult?.match1to50)
-                targetBadge(title: "1-100", target: session.target1to100, match: session.rollResult?.match1to100)
+                targetBadge(title: "1-5", target: session.target1to5, match: session.rollResult?.match1to5, isPlaceholder: !hasRolled)
+                targetBadge(title: "1-50", target: session.target1to50, match: session.rollResult?.match1to50, isPlaceholder: !hasRolled)
+                targetBadge(title: "1-100", target: session.target1to100, match: session.rollResult?.match1to100, isPlaceholder: !hasRolled)
             }
 
             Button { showRoll = true } label: {
@@ -84,18 +112,18 @@ struct LandingPage: View {
         .padding(.horizontal, 22)
     }
 
-    private func targetBadge(title: String, target: Int, match: Bool?) -> some View {
+    private func targetBadge(title: String, target: Int, match: Bool?, isPlaceholder: Bool) -> some View {
         VStack(spacing: 6) {
             Text(title)
                 .font(.caption2.bold())
                 .foregroundColor(.white.opacity(0.7))
 
             HStack(spacing: 6) {
-                Text("\(target)")
+                Text(isPlaceholder ? "?" : "\(target)")
                     .font(.system(size: 22, weight: .bold))
                     .foregroundColor(.white)
 
-                if let m = match {
+                if !isPlaceholder, let m = match {
                     Image(systemName: m ? "checkmark.circle.fill" : "xmark.circle.fill")
                         .foregroundColor(m ? .green : .red)
                         .font(.system(size: 16, weight: .semibold))
@@ -103,7 +131,7 @@ struct LandingPage: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 10)
-            .background(Color.white.opacity(0.08))
+            .background(Color.white.opacity(isPlaceholder ? 0.05 : 0.08))
             .clipShape(RoundedRectangle(cornerRadius: 12))
         }
         .frame(width: 96)
@@ -152,4 +180,153 @@ struct LandingPage: View {
             }
         }
     }
+}
+
+// MARK: - Dare Coach (lightweight on-device helper)
+struct DareCoachView: View {
+    @EnvironmentObject var session: SessionState
+    @State private var expanded = true
+    @State private var input = ""
+    @State private var messages: [CoachMessage] = []
+
+    var body: some View {
+        VStack(spacing: 10) {
+            // Header
+            HStack {
+                Label("Dare Coach", systemImage: "person.fill.questionmark")
+                    .foregroundColor(.white)
+                    .font(.headline)
+                Spacer()
+                Button {
+                    withAnimation(.spring()) { expanded.toggle() }
+                } label: {
+                    Image(systemName: expanded ? "chevron.down.circle.fill" : "chevron.right.circle.fill")
+                        .foregroundColor(.white.opacity(0.8))
+                        .font(.title3)
+                }
+            }
+            .padding(.horizontal, 8)
+
+            if expanded {
+                // Messages
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 10) {
+                        ForEach(messages) { msg in
+                            HStack(alignment: .top) {
+                                if msg.role == .bot {
+                                    Image(systemName: "bubble.left.and.bubble.right.fill")
+                                        .foregroundColor(.blue)
+                                        .padding(.top, 2)
+                                } else {
+                                    Image(systemName: "person.circle.fill")
+                                        .foregroundColor(.purple)
+                                        .padding(.top, 2)
+                                }
+                                Text(msg.text)
+                                    .foregroundColor(.white)
+                                    .padding(10)
+                                    .background(msg.role == .bot ? Color.white.opacity(0.08) : Color.white.opacity(0.05))
+                                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                                Spacer(minLength: 0)
+                            }
+                        }
+
+                        if messages.isEmpty {
+                            // Seed tips based on current dares
+                            ForEach(seedTips(), id: \.self) { tip in
+                                HStack(alignment: .top) {
+                                    Image(systemName: "bubble.left.and.bubble.right.fill")
+                                        .foregroundColor(.blue)
+                                        .padding(.top, 2)
+                                    Text(tip)
+                                        .foregroundColor(.white)
+                                        .padding(10)
+                                        .background(Color.white.opacity(0.08))
+                                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                                    Spacer(minLength: 0)
+                                }
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 8)
+                }
+                .frame(maxHeight: 180)
+
+                // Input row
+                HStack(spacing: 8) {
+                    TextField("Ask how to complete a dare…", text: $input)
+                        .textFieldStyle(.roundedBorder)
+                        .foregroundColor(.white)
+                        .tint(.blue)
+                        .onSubmit(sendMessage)
+                    Button(action: sendMessage) {
+                        Image(systemName: "paperplane.fill")
+                            .foregroundColor(.white)
+                            .padding(10)
+                            .background(LinearGradient(colors: [.blue, .purple], startPoint: .leading, endPoint: .trailing))
+                            .clipShape(Circle())
+                    }
+                }
+            }
+        }
+        .padding(12)
+        .background(Color.white.opacity(0.06))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .onAppear {
+            // Optionally seed a greeting message once
+            if messages.isEmpty {
+                messages.append(CoachMessage(role: .bot, text: "Need ideas or tips? Ask me how to do your dare safely and creatively."))
+            }
+        }
+    }
+
+    private func sendMessage() {
+        let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        messages.append(CoachMessage(role: .user, text: trimmed))
+        input = ""
+
+        // Simple on-device rule-based response
+        let lower = trimmed.lowercased()
+        var response: String
+
+        if lower.contains("push") || lower.contains("push-up") || lower.contains("pushups") {
+            response = "For push-ups: keep a straight line from shoulders to ankles, engage your core, and go slow. Start on knees if needed, and record from the side at chest height for best form check."
+        } else if lower.contains("public") || lower.contains("embarrassing") || lower.contains("outside") {
+            response = "Public dares: choose a safe, open area, bring a friend to record, and be respectful. Avoid blocking paths and keep it short. Confidence tip: plan your line, take a deep breath, and go!"
+        } else if lower.contains("record") || lower.contains("video") || lower.contains("camera") {
+            response = "Recording tips: use good lighting, stabilize your phone (lean it or use a tripod), and frame vertically. Do a quick test clip to check audio and angle before the real take."
+        } else if lower.contains("nervous") || lower.contains("scared") || lower.contains("anxious") {
+            response = "Feeling nervous is normal! Try a smaller warm-up dare first, bring a hype friend, and set a 10-second countdown to commit. Focus on the fun and the story you’ll tell."
+        } else if lower.contains("water") || lower.contains("chug") {
+            response = "Hydration dare: use cool water, don’t overdo it—small sips if you need to pause. Keep it safe and stop if you feel discomfort. Angle the camera slightly above eye level for a flattering shot."
+        } else {
+            // Use current assigned dares to tailor a generic response
+            let tiers = session.assignedDares.map { $0.category }.joined(separator: ", ")
+            let hint = tiers.isEmpty ? "" : " I see dares in tiers: \(tiers)."
+            response = "Good question!\(hint) Break the dare into steps, plan your setup (lighting, angle, safety), and add a fun twist (music or a prop). Ask me specifics like “public”, “push-ups”, or “recording”."
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            messages.append(CoachMessage(role: .bot, text: response))
+        }
+    }
+
+    private func seedTips() -> [String] {
+        var tips: [String] = [
+            "Tip: Pick a safe spot and plan your camera angle before you start.",
+            "Idea: Add a fun twist — use a prop or a quick intro line to set the vibe."
+        ]
+        if let dare = session.assignedDares.first {
+            tips.append("You’ve got a \(dare.category) dare. Try: \(dare.text)")
+        }
+        return tips
+    }
+}
+
+private struct CoachMessage: Identifiable {
+    enum Role { case bot, user }
+    let id = UUID()
+    let role: Role
+    let text: String
 }

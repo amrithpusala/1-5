@@ -1,0 +1,88 @@
+//
+//  SessionState.swift
+//  1-5
+//
+//  Created by Taran Patibanda on 9/20/25.
+//
+
+import SwiftUI
+import FirebaseAuth
+
+class SessionState: ObservableObject {
+    @Published var isLoggedIn: Bool = false
+    @Published var userId: String = ""        // used for Firestore paths
+    @Published var username: String = ""      // displayed in Profile
+    @Published var bio: String = ""           // displayed in Profile
+    @Published var userVideos: [VideoPost] = [] // videos for Profile
+    
+    // Dares system
+    @Published var assignedDares: [Dare] = []
+    @Published var rollResult: RollResult? = nil
+    @Published var target1to5: Int = Int.random(in: 1...5)
+    @Published var target1to50: Int = Int.random(in: 1...50)
+    @Published var target1to100: Int = Int.random(in: 1...100)
+
+    init() {
+        // If already signed in, use that user. Otherwise sign in anonymously for testing.
+        if let currentUser = Auth.auth().currentUser {
+            adopt(user: currentUser)
+        } else {
+            Auth.auth().signInAnonymously { [weak self] result, error in
+                guard let self = self else { return }
+                if let user = result?.user {
+                    DispatchQueue.main.async {
+                        self.adopt(user: user)
+                    }
+                } else if let error = error {
+                    // Keep app usable; you can show a toast if you like
+                    print("Anonymous sign-in failed: \(error.localizedDescription)")
+                }
+            }
+        }
+    }
+    
+    private func adopt(user: User) {
+        self.isLoggedIn = true
+        self.userId = user.uid
+        if self.username.isEmpty {
+            self.username = "Test User"
+        }
+        self.bio = ""
+    }
+    
+    func resetRoll() {
+        rollResult = nil
+        target1to5 = Int.random(in: 1...5)
+        target1to50 = Int.random(in: 1...50)
+        target1to100 = Int.random(in: 1...100)
+        assignedDares = []
+    }
+
+    // Always assign a dare per tier so the picker always has content
+    func assignDares(from result: RollResult) {
+        var picks: [Dare] = []
+        if let d = DaresLibrary.oneToFive.randomElement() { picks.append(d) }
+        if let d = DaresLibrary.oneToFifty.randomElement() { picks.append(d) }
+        if let d = DaresLibrary.oneToHundred.randomElement() { picks.append(d) }
+        assignedDares = picks
+    }
+
+    func assignRandomDares() {
+        assignedDares = [
+            DaresLibrary.oneToFive.randomElement(),
+            DaresLibrary.oneToFifty.randomElement(),
+            DaresLibrary.oneToHundred.randomElement()
+        ].compactMap { $0 }
+    }
+    
+    // Optional testing helper (kept for manual override)
+    func becomeTestUserIfNeeded() {
+        if userId.isEmpty {
+            userId = "test-user"
+        }
+        if username.isEmpty {
+            username = "Test User"
+        }
+        isLoggedIn = true
+    }
+}
