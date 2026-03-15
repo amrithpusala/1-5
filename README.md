@@ -1,38 +1,42 @@
 # 1-5
 
-A social dare platform inspired by BeReal where users roll a daily random number (1–5) to unlock AI-generated, age-appropriate dares. Features a TikTok-style video feed ranked by engagement signals.
+A real-time social dare app built on a synchronized number-matching mechanic — inspired by "What Are The Odds." Two users independently pick a number between 1 and 5. If the numbers match, both must complete an AI-generated dare. If not, the dare fades.
 
-## How It Works
+## Core Mechanic
 
-1. **Daily Roll** — Each day, users roll a number between 1 and 5. The number determines the dare difficulty tier they unlock.
-2. **AI-Generated Dares** — Dares are generated dynamically and tailored to be age-appropriate, creative, and shareable.
-3. **Record & Share** — Users film themselves completing the dare and post it to the feed.
-4. **For You Feed** — A content recommendation algorithm ranks and surfaces videos based on user retention and interaction signals (watch time, likes, shares, replays).
+```
+User A picks a number (1–5)
+User B picks a number (1–5)
+  → Match? → AI generates an age-appropriate dare → both users must complete + record
+  → No match? → Dare is discarded, round fades
+```
+
+## Features
+
+- **Synchronized roll resolution** — concurrent number submissions with server-side match validation to prevent race conditions
+- **AI dare generation** — dynamically generates dares scoped by difficulty tier and age-appropriateness constraints
+- **Engagement-ranked video feed** — content recommendation algorithm surfaces videos based on retention signals (watch time, replays, completion rate) and interaction metrics (likes, shares, comments)
+- **Video capture and upload pipeline** — native camera integration with async upload to Cloud Storage and Firestore metadata indexing
+- **Real-time social layer** — live feed updates, notifications on match results, and in-app reactions
 
 ## Tech Stack
 
 - **Frontend:** Swift, SwiftUI
-- **Backend:** Firebase, Firestore
+- **Backend:** Firebase, Firestore, Cloud Storage
 - **Auth:** Firebase Authentication
-- **Storage:** Firebase Cloud Storage (video uploads)
-- **AI:** AI-powered dare generation engine
-
-## Key Features
-
-- Daily random-number mechanic with tiered dare difficulty
-- Content recommendation algorithm optimizing the "For You" feed by engagement signals
-- Real-time social features (likes, comments, shares)
-- Video recording and upload pipeline
-- Age-appropriate content filtering
+- **AI:** Server-side dare generation engine
+- **Feed Algorithm:** Weighted scoring model ranking content by engagement signals
 
 ## Architecture
 
 ```
-User rolls 1-5
-  → Dare tier assigned
-    → AI generates dare
-      → User records video
-        → Upload to Cloud Storage
-          → Firestore indexes metadata
-            → Recommendation engine ranks in feed
+User A selects number ──┐
+                        ├──→ Server validates match
+User B selects number ──┘
+  → Match confirmed
+    → Dare generation engine produces challenge
+      → Users record completion video
+        → Video uploaded to Cloud Storage
+          → Firestore indexes metadata (timestamp, engagement, tags)
+            → Recommendation engine scores and ranks in feed
 ```
