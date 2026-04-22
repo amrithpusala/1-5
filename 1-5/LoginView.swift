@@ -1,4 +1,6 @@
 import SwiftUI
+import FirebaseAuth
+import FirebaseFirestore
 
 struct LoginView: View {
     @EnvironmentObject var session: SessionState
@@ -8,14 +10,13 @@ struct LoginView: View {
     @State private var email = ""
     @State private var password = ""
     @State private var errorMessage: String?
+    @State private var isLoading = false
 
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
 
             VStack(spacing: 24) {
-
-                // Logo
                 Text("🔥 1-5")
                     .font(.system(size: 40, weight: .bold))
                     .foregroundStyle(LinearGradient(colors: [.blue, .purple],
@@ -30,44 +31,13 @@ struct LoginView: View {
                 .pickerStyle(.segmented)
                 .padding(.horizontal)
 
-                // Username
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Username")
-                        .foregroundColor(.gray)
-                        .font(.subheadline)
-                    TextField("Enter username", text: $username)
-                        .padding()
-                        .background(
-                            RoundedRectangle(cornerRadius: 10)
-                                .stroke(LinearGradient(colors: [.blue, .purple],
-                                                       startPoint: .leading, endPoint: .trailing), lineWidth: 1)
-                        )
-                        .foregroundColor(.white)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                }
-                .padding(.horizontal)
-
-                // Email (sign up only)
+                // Username (sign up only)
                 if !isLoginMode {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Email")
-                            .foregroundColor(.gray)
-                            .font(.subheadline)
-                        TextField("Enter email", text: $email)
-                            .keyboardType(.emailAddress)
-                            .padding()
-                            .background(
-                                RoundedRectangle(cornerRadius: 10)
-                                    .stroke(LinearGradient(colors: [.blue, .purple],
-                                                           startPoint: .leading, endPoint: .trailing), lineWidth: 1)
-                            )
-                            .foregroundColor(.white)
-                            .textInputAutocapitalization(.never)
-                            .autocorrectionDisabled()
-                    }
-                    .padding(.horizontal)
+                    fieldBox(label: "Username", text: $username, keyboard: .default)
                 }
+
+                // Email
+                fieldBox(label: "Email", text: $email, keyboard: .emailAddress)
 
                 // Password
                 VStack(alignment: .leading, spacing: 6) {
@@ -85,51 +55,49 @@ struct LoginView: View {
                 }
                 .padding(.horizontal)
 
-                // Error text (if any)
                 if let error = errorMessage {
                     Text(error)
                         .foregroundColor(.red)
                         .font(.footnote)
-                        .padding(.top, -8)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal)
                 }
 
-                // Primary button
                 Button {
-                    // Test flow: allow “login” locally and set a test user so uploads work.
-                    if username.isEmpty || password.isEmpty {
-                        errorMessage = "Please enter username and password."
-                    } else {
-                        errorMessage = nil
-                        session.username = username
-                        session.becomeTestUserIfNeeded() // ensures userId and isLoggedIn
-                    }
+                    isLoginMode ? login() : signUp()
                 } label: {
-                    Text(isLoginMode ? "Log In" : "Sign Up")
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(
-                            LinearGradient(colors: [.blue, .purple],
-                                           startPoint: .leading, endPoint: .trailing)
-                        )
-                        .cornerRadius(12)
+                    Group {
+                        if isLoading {
+                            ProgressView().tint(.white)
+                        } else {
+                            Text(isLoginMode ? "Log In" : "Sign Up")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(
+                        LinearGradient(colors: [.blue, .purple],
+                                       startPoint: .leading, endPoint: .trailing)
+                    )
+                    .cornerRadius(12)
                 }
                 .padding(.horizontal)
+                .disabled(isLoading)
 
-                // Bottom link
                 Button {
                     isLoginMode.toggle()
+                    errorMessage = nil
                 } label: {
-                    Text(isLoginMode ? "Don’t have an account? Sign Up" :
+                    Text(isLoginMode ? "Don't have an account? Sign Up" :
                                       "Already have an account? Log In")
                         .foregroundColor(.gray)
                         .font(.subheadline)
                 }
 
-                // Skip (testing)
                 Button {
-                    session.becomeTestUserIfNeeded() // ensures userId and isLoggedIn
+                    session.becomeTestUserIfNeeded()
                 } label: {
                     Text("Skip Login (testing)")
                         .foregroundColor(.blue)
@@ -138,6 +106,69 @@ struct LoginView: View {
                 .padding(.bottom, 20)
 
                 Spacer()
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func fieldBox(label: String, text: Binding<String>, keyboard: UIKeyboardType) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(label)
+                .foregroundColor(.gray)
+                .font(.subheadline)
+            TextField("Enter \(label.lowercased())", text: text)
+                .keyboardType(keyboard)
+                .padding()
+                .background(
+                    RoundedRectangle(cornerRadius: 10)
+                        .stroke(LinearGradient(colors: [.blue, .purple],
+                                               startPoint: .leading, endPoint: .trailing), lineWidth: 1)
+                )
+                .foregroundColor(.white)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+        }
+        .padding(.horizontal)
+    }
+
+    private func login() {
+        guard !email.isEmpty, !password.isEmpty else {
+            errorMessage = "Please enter email and password."
+            return
+        }
+        isLoading = true
+        Auth.auth().signIn(withEmail: email, password: password) { _, error in
+            DispatchQueue.main.async {
+                isLoading = false
+                errorMessage = error?.localizedDescription
+            }
+        }
+    }
+
+    private func signUp() {
+        let trimmed = username.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { errorMessage = "Username is required."; return }
+        guard !email.isEmpty, !password.isEmpty else { errorMessage = "All fields are required."; return }
+        isLoading = true
+        Auth.auth().createUser(withEmail: email, password: password) { result, error in
+            DispatchQueue.main.async {
+                if let error = error {
+                    isLoading = false
+                    errorMessage = error.localizedDescription
+                    return
+                }
+                guard let uid = result?.user.uid else { return }
+                Firestore.firestore().collection("users").document(uid).setData([
+                    "username": trimmed,
+                    "bio": "",
+                    "createdAt": Timestamp(date: Date())
+                ]) { err in
+                    DispatchQueue.main.async {
+                        isLoading = false
+                        if let err = err { errorMessage = err.localizedDescription }
+                        // auth state listener in SessionState handles isLoggedIn
+                    }
+                }
             }
         }
     }

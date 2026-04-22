@@ -1,10 +1,3 @@
-//
-//  SessionState.swift
-//  1-5
-//
-//  Created by Taran Patibanda on 9/20/25.
-//
-
 import SwiftUI
 import FirebaseAuth
 
@@ -12,11 +5,11 @@ import FirebaseAuth
 class SessionState: ObservableObject {
     // Auth and profile
     @Published var isLoggedIn: Bool = false
-    @Published var userId: String = ""        // Firestore path key
-    @Published var username: String = ""      // Profile display
-    @Published var bio: String = ""           // Profile bio
-    @Published var userVideos: [VideoPost] = [] // Profile posts
-    
+    @Published var userId: String = ""
+    @Published var username: String = ""
+    @Published var bio: String = ""
+    @Published var userVideos: [VideoPost] = []
+
     // Dares and roll state
     @Published var assignedDares: [Dare] = []
     @Published var rollResult: RollResult? = nil
@@ -24,36 +17,34 @@ class SessionState: ObservableObject {
     @Published var target1to50: Int = Int.random(in: 1...50)
     @Published var target1to100: Int = Int.random(in: 1...100)
 
+    private var authHandle: AuthStateDidChangeListenerHandle?
+
     init() {
-        // Reuse current user or sign in anonymously for testing.
-        if let currentUser = Auth.auth().currentUser {
-            adopt(user: currentUser)
-        } else {
-            Auth.auth().signInAnonymously { [weak self] result, error in
-                guard let self = self else { return }
-                if let user = result?.user {
-                    DispatchQueue.main.async {
-                        self.adopt(user: user)
-                    }
-                } else if let error = error {
-                    // Keep app usable; optional UI error handling.
-                    print("Anonymous sign-in failed: \(error.localizedDescription)")
+        authHandle = Auth.auth().addStateDidChangeListener { [weak self] _, user in
+            DispatchQueue.main.async {
+                if let user = user {
+                    self?.adopt(user: user)
+                } else {
+                    self?.isLoggedIn = false
+                    self?.userId = ""
+                    self?.username = ""
+                    self?.userVideos = []
                 }
             }
         }
     }
-    
-    // Initialize session fields from Firebase user.
+
+    deinit {
+        if let handle = authHandle {
+            Auth.auth().removeStateDidChangeListener(handle)
+        }
+    }
+
     private func adopt(user: User) {
         self.isLoggedIn = true
         self.userId = user.uid
-        if self.username.isEmpty {
-            self.username = "Test User"
-        }
-        self.bio = ""
     }
-    
-    // Clear current roll and generate new targets.
+
     func resetRoll() {
         rollResult = nil
         target1to5 = Int.random(in: 1...5)
@@ -62,16 +53,14 @@ class SessionState: ObservableObject {
         assignedDares = []
     }
 
-    // Always pick one dare per tier from library.
     func assignDares(from result: RollResult) {
         var picks: [Dare] = []
-        if let d = DaresLibrary.oneToFive.randomElement() { picks.append(d) }
-        if let d = DaresLibrary.oneToFifty.randomElement() { picks.append(d) }
-        if let d = DaresLibrary.oneToHundred.randomElement() { picks.append(d) }
+        if let d = DaresLibrary.oneToFive.randomElement()   { picks.append(d) }
+        if let d = DaresLibrary.oneToFifty.randomElement()  { picks.append(d) }
+        if let d = DaresLibrary.oneToHundred.randomElement(){ picks.append(d) }
         assignedDares = picks
     }
 
-    // Random dares across tiers (no roll dependency).
     func assignRandomDares() {
         assignedDares = [
             DaresLibrary.oneToFive.randomElement(),
@@ -79,15 +68,11 @@ class SessionState: ObservableObject {
             DaresLibrary.oneToHundred.randomElement()
         ].compactMap { $0 }
     }
-    
-    // Test helper to force a local session.
+
+    // Test helper — keeps the skip button working.
     func becomeTestUserIfNeeded() {
-        if userId.isEmpty {
-            userId = "test-user"
-        }
-        if username.isEmpty {
-            username = "Test User"
-        }
+        if userId.isEmpty { userId = "test-user" }
+        if username.isEmpty { username = "Test User" }
         isLoggedIn = true
     }
 }

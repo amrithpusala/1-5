@@ -15,22 +15,21 @@ struct FYPView: View {
             Color.black.ignoresSafeArea()
             
             if posts.isEmpty && !loading {
-                // Empty state with load button.
                 VStack(spacing: 14) {
-                    Image("1-5logo")
+                    Image(systemName: "play.rectangle.fill")
                         .resizable()
                         .scaledToFit()
                         .frame(width: 72, height: 72)
+                        .foregroundColor(.purple.opacity(0.8))
                         .opacity(showLogo ? 1 : 0)
                         .scaleEffect(showLogo ? 1 : 0.85)
                         .animation(.spring(response: 0.6, dampingFraction: 0.7), value: showLogo)
-                    
-                    Text("No videos yet")
+
+                    Text("No dare videos yet")
                         .foregroundColor(.white.opacity(0.85))
-                    Button(action: { loadDummyFeed() }) {
-                        Text("Load Dare Feed")
-                    }
-                    .foregroundColor(.blue)
+                    Text("Be the first to post one!")
+                        .foregroundColor(.white.opacity(0.55))
+                        .font(.subheadline)
                 }
             } else {
                 // Vertical scrolling feed of autoplaying videos.
@@ -44,13 +43,10 @@ struct FYPView: View {
                             }
                             if reachedEnd {
                                 VStack(spacing: 10) {
-                                    Image("1-5logo")
-                                        .resizable()
-                                        .scaledToFit()
-                                        .frame(width: 42, height: 42)
-                                        .opacity(0.95)
-                                        .scaleEffect(1.02)
-                                    Text("End of feed")
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .font(.system(size: 42))
+                                        .foregroundColor(.purple.opacity(0.8))
+                                    Text("You're all caught up")
                                         .foregroundColor(.white.opacity(0.7))
                                 }
                                 .padding(.vertical, 24)
@@ -72,84 +68,27 @@ struct FYPView: View {
             }
         }
         .onAppear {
-            if posts.isEmpty { loadDummyFeed() }
-            withAnimation {
-                showLogo = true
-            }
+            if posts.isEmpty { loadFeed() }
+            withAnimation { showLogo = true }
         }
     }
-    
-    // Loads a few sample clips into the feed.
-    private func loadDummyFeed() {
+
+    private func loadFeed() {
         guard !loading else { return }
         loading = true
-        
-        // Public sample videos.
-        let sampleClips = [
-            "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
-            "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
-            "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4",
-            "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4"
-        ]
-        
-        // Shuffle for variety.
-        let shuffled = Array(sampleClips.shuffled().prefix(3))
-        
-        let now = Date()
-        let post1 = VideoPost(
-            id: UUID().uuidString,
-            videoURL: shuffled[0],
-            thumbnailURL: nil,
-            caption: "Tier 1-5: Chug a glass of water in under 10 seconds. I rolled a 3 — let’s go! 💦",
-            hashtags: ["#1to5", "#hydration", "#dare", "#15App"],
-            dareTag: "1-5",
-            userId: "user-amy",
-            username: "amy",
-            likes: 23,
-            dislikes: 1,
-            daredoneVotes: 12,
-            darednoVotes: 2,
-            createdAt: now.addingTimeInterval(-60 * 5)
-        )
-        
-        let post2 = VideoPost(
-            id: UUID().uuidString,
-            videoURL: shuffled[1],
-            thumbnailURL: nil,
-            caption: "Tier 1-50: Do 10 push-ups and shout your roll. I rolled a 27. Form check me! 💪",
-            hashtags: ["#1to50", "#fitness", "#pushups", "#15App"],
-            dareTag: "1-50",
-            userId: "user-jay",
-            username: "jay",
-            likes: 57,
-            dislikes: 3,
-            daredoneVotes: 34,
-            darednoVotes: 5,
-            createdAt: now.addingTimeInterval(-60 * 20)
-        )
-        
-        let post3 = VideoPost(
-            id: UUID().uuidString,
-            videoURL: shuffled[2],
-            thumbnailURL: nil,
-            caption: "Tier 1-100: Sing the alphabet backward in public. Rolled 81… send help 😂",
-            hashtags: ["#1to100", "#publicdare", "#challenge", "#15App"],
-            dareTag: "1-100",
-            userId: "user-luca",
-            username: "luca",
-            likes: 102,
-            dislikes: 7,
-            daredoneVotes: 61,
-            darednoVotes: 9,
-            createdAt: now.addingTimeInterval(-60 * 60)
-        )
-        
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
-            withAnimation(.easeInOut(duration: 0.25)) {
-                self.posts = [post1, post2, post3]
+        VideoService.shared.fetchFeedPage(limit: 20) { result in
+            DispatchQueue.main.async {
+                loading = false
+                switch result {
+                case .success(let (fetched, _)):
+                    withAnimation(.easeInOut(duration: 0.25)) {
+                        posts = fetched
+                    }
+                    reachedEnd = fetched.count < 20
+                case .failure(let err):
+                    print("FYP load error: \(err.localizedDescription)")
+                }
             }
-            self.loading = false
-            self.reachedEnd = true
         }
     }
 }
@@ -160,18 +99,14 @@ struct FYPView: View {
 private struct FYPCell: View {
     let post: VideoPost
     var interactionsEnabled: Bool = true
-    
+    @State private var player: AVPlayer?
+
     var body: some View {
         ZStack(alignment: .bottomLeading) {
-            if let url = URL(string: post.videoURL) {
-                VideoPlayer(player: {
-                    let p = AVPlayer(url: url)
-                    p.play()
-                    p.isMuted = false
-                    return p
-                }())
-                .ignoresSafeArea()
-                .transition(.opacity)
+            if let player = player {
+                VideoPlayer(player: player)
+                    .ignoresSafeArea()
+                    .transition(.opacity)
             } else {
                 Color.black
             }
@@ -241,6 +176,21 @@ private struct FYPCell: View {
         .background(Color.black)
         .clipShape(Rectangle())
         .shadow(color: Color.black.opacity(0.25), radius: 3, x: 0, y: 2)
+        .onAppear {
+            guard let url = URL(string: post.videoURL) else { return }
+            let p = AVPlayer(url: url)
+            p.play()
+            player = p
+            NotificationCenter.default.addObserver(
+                forName: .AVPlayerItemDidPlayToEndTime,
+                object: p.currentItem,
+                queue: .main
+            ) { _ in p.seek(to: .zero); p.play() }
+        }
+        .onDisappear {
+            player?.pause()
+            player = nil
+        }
     }
 }
 

@@ -1,4 +1,5 @@
 import SwiftUI
+import FirebaseAuth
 import FirebaseFirestore
 import AVKit
 
@@ -119,7 +120,7 @@ struct ProfileView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Logout") {
-                        session.isLoggedIn = false
+                        try? Auth.auth().signOut()
                     }
                     .foregroundColor(.red)
                 }
