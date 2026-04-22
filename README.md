@@ -2,7 +2,7 @@
 
 A real-time social dare app built on a synchronized number-matching mechanic — inspired by "What Are The Odds." Two users independently pick a number between 1 and 5. If the numbers match, both must complete an AI-generated dare. If not, the dare fades.
 
-## Core Mechanic
+##Core Mechanic
 
 ```
 User A picks a number (1–5)
